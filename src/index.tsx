@@ -76,7 +76,7 @@ export class DictationApp {
     const gemini_url = localStorage.getItem("gemini_url");
     if (!gemini_api || !gemini_url) {
       alert("gemini_api is not define");
-      window.location.href = "/";
+      // window.location.href = "/";
       return;
 
     }
