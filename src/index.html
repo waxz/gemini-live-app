@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dictation App</title>
+  <link rel="stylesheet" href="/index.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script type="importmap">
+    {
+  "imports": {
+    "@google/genai": "https://esm.sh/@google/genai@^0.8.0",
+    "marked": "https://esm.sh/marked@^4.0.0",
+    "fs": "https://esm.sh/fs@^0.0.1-security",
+    "mime": "https://esm.sh/mime@^4.0.7",
+    "wavefile": "https://esm.sh/wavefile@^11.0.0",
+    "node": "https://esm.sh/node@^24.2.0",
+    "buffer": "https://esm.sh/buffer@^6.0.3"
+  }
+}
+</script>
+<script type="module" src="/index.tsx"></script>
+
+</head>
+
+<body>
+  <div class="app-container">
+    <div class="main-content">
+      <div class="note-area">
+        <div class="note-header">
+          <div class="editor-title" contenteditable="true" placeholder="Untitled Note">
+            Untitled Note
+          </div>
+          <div class="tab-navigation-container">
+            <div class="tab-navigation">
+              <button class="tab-button active" data-tab="dialog" aria-label="Dialog Demo Tab">Dialog</button>
+              <button class="tab-button" data-tab="note" aria-label="Polished Notes Tab">Polished</button>
+              <button class="tab-button" data-tab="raw" aria-label="Raw Transcription Tab">Raw</button>
+              <button class="tab-button" data-tab="setting" aria-label="Setting Tab">Setting</button>
+              <div class="active-tab-indicator" aria-hidden="true"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="note-content-wrapper">
+          <div id="polishedNote" class="note-content active" contenteditable="true"
+            placeholder="Your polished notes will appear here..." aria-label="Polished note content area"></div>
+          <div id="rawTranscription" class="note-content" contenteditable="true"
+            placeholder="Raw transcription will appear here..." aria-label="Raw transcription content area"></div>
+          <div id="dialogDemoContent" class="note-content" aria-label="Dialog demo content area">
+           
+            <div id="dialogDemoMessagesContainer"  aria-live="polite"
+              aria-atomic="false">
+              <!-- Messages will be appended here -->
+            </div>
+
+          </div>
+          <div id="settingPanel" class="note-content" aria-label="Dialog demo content area">
+            <div class="dialog-demo-input-area">
+              <input type="text" id="gemini_api_key_input" class="dialog-input" placeholder="Type your gemini api key" aria-label="Dialog message input" />
+              <input type="text" id="gemini_base_url_input" value="https://generativelanguage.googleapis.com" class="dialog-input" placeholder="Type your gemini base url" aria-label="Dialog message input" />
+              
+              <button id="set-gemini-api" class="dialog-button" onclick="saveGeminiAPI()">Save</button>
+            </div>
+
+          </div>
+          
+        </div>
+      </div>
+            <div class="dialog-demo-input-area">
+              <input type="text" id="dialogDemoInput" class="dialog-input" placeholder="Type your message..." disabled aria-label="Dialog message input" />
+              <button id="dialogDemoSendButton" class="dialog-button" disabled>Send</button>
+            </div>
+      <div class="recording-interface">
+        <div id="liveRecordingTitle" class="live-recording-title" style="display: none" aria-hidden="true">
+          Recording
+        </div>
+        <canvas id="liveWaveformCanvas" style="display: none" aria-label="Live audio waveform"
+          aria-hidden="true"></canvas>
+        <div id="liveRecordingTimerDisplay" class="live-recording-timer" style="display: none"
+          aria-label="Recording timer" aria-hidden="true">
+          00:00.00
+        </div>
+
+        <div class="status-indicator">
+          <span id="recordingStatus" class="status-text" aria-live="polite">Ready to record</span>
+        </div>
+
+        <div class="recording-controls">
+        
+             
+             <div>
+              <button id="dialogDemoConnectButton" class="action-button" title="Connect Live API" >
+                 <i class="fa-solid fa-fire" aria-hidden="true" ></i>
+              </button>
+           </div>
+          <button class="action-button" id="themeToggleButton" title="Toggle Theme" aria-label="Toggle Theme">
+              <i class="fas fa-sun" aria-hidden="true"></i>
+            </button>
+
+          <button id="recordButton" class="record-button" title="Start/Stop Recording" aria-label="Start Recording">
+              <div class="record-button-inner">
+                <i class="fas fa-microphone" aria-hidden="true"></i>
+                <span class="sr-only">Start Recording</span>
+              </div>
+              <svg class="record-waves" viewBox="0 0 200 200" aria-hidden="true">
+                <circle class="wave wave1" cx="100" cy="100" r="40" />
+                <circle class="wave wave2" cx="100" cy="100" r="70" />
+                <circle class="wave wave3" cx="100" cy="100" r="100" />
+              </svg>
+              <span class="record-text" aria-hidden="true">Record</span>
+            </button>
+
+          <button class="action-button" id="newButton" title="New Note / Clear" aria-label="New Note or Clear Content">
+              <i class="fas fa-file" aria-hidden="true"></i>
+            </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="micStatus" class="debug-panel" aria-hidden="true"></div>
+
+  <script>
+    function saveGeminiAPI(){
+      gemini_api_div = document.getElementById("gemini_api_key_input");
+      gemini_url_div = document.getElementById("gemini_base_url_input");
+
+      if(gemini_api_div && gemini_url_div){
+        localStorage.setItem("gemini_api", gemini_api_div.value);
+        localStorage.setItem("gemini_url", gemini_url_div.value);
+      }
+    }
+    function loadGeminiAPI(){
+      gemini_api_div = document.getElementById("gemini_api_key_input");
+      gemini_url_div = document.getElementById("gemini_base_url_input");
+
+      const gemini_api = localStorage.getItem("gemini_api");
+      const gemini_url = localStorage.getItem("gemini_url");
+
+      if(gemini_api_div && gemini_url_div &&gemini_api &&  gemini_url){
+        if(gemini_api.length > 0) gemini_api_div.value = gemini_api;
+        if(gemini_url.length > 0) gemini_url_div.value = gemini_url;
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const tabNav = document.querySelector(".tab-navigation");
+        const tabButtons = tabNav.querySelectorAll(".tab-button");
+        const activeTabIndicator = tabNav.querySelector(".active-tab-indicator");
+        const noteContents = document.querySelectorAll(".note-content");
+        const recordButton = document.getElementById("recordButton");
+        const recordButtonInner = recordButton.querySelector(".record-button-inner");
+
+
+        function setActiveTab(activeButton, skipAnimation = false) {
+          if (!activeButton || !activeTabIndicator) return;
+
+          tabButtons.forEach((btn) => {
+            btn.classList.remove("active");
+            btn.setAttribute("aria-selected", "false");
+          });
+          activeButton.classList.add("active");
+          activeButton.setAttribute("aria-selected", "true");
+
+
+          const tabName = activeButton.getAttribute("data-tab");
+          noteContents.forEach((content) => {
+            content.classList.remove("active");
+            content.setAttribute("aria-hidden", "true");
+          });
+          
+          let activeContentElement = null;
+          if (tabName === "raw") {
+            activeContentElement = document.getElementById("rawTranscription");
+          } else if (tabName === "dialog") {
+            activeContentElement = document.getElementById("dialogDemoContent");
+          } else if (tabName === "note") { // Default to "note" (Polished)
+            activeContentElement = document.getElementById("polishedNote");
+          }else{
+            loadGeminiAPI();
+            activeContentElement = document.getElementById("settingPanel");
+          }
+          if (activeContentElement) {
+            activeContentElement.classList.add("active");
+            activeContentElement.setAttribute("aria-hidden", "false");
+          }
+
+
+          const originalTransition = activeTabIndicator.style.transition;
+          if (skipAnimation) {
+            activeTabIndicator.style.transition = "none";
+          } else {
+            activeTabIndicator.style.transition = ""; // Use CSS defined transition
+          }
+
+          activeTabIndicator.style.left = `${activeButton.offsetLeft}px`;
+          activeTabIndicator.style.width = `${activeButton.offsetWidth}px`;
+
+          if (skipAnimation) {
+            // Force reflow to apply instantaneous change before re-enabling transition
+            activeTabIndicator.offsetHeight; 
+            activeTabIndicator.style.transition = originalTransition;
+          }
+        }
+
+        tabButtons.forEach((button) => {
+          button.addEventListener("click", (e) => {
+            setActiveTab(e.currentTarget);
+          });
+        });
+
+        const initiallyActiveButton = tabNav.querySelector(".tab-button.active");
+        if (initiallyActiveButton) {
+          requestAnimationFrame(() => {
+            setActiveTab(initiallyActiveButton, true); 
+          });
+        }
+        
+        window.addEventListener("resize", () => {
+          requestAnimationFrame(() => {
+            const currentActiveButton = tabNav.querySelector(".tab-button.active");
+            if (currentActiveButton) {
+              setActiveTab(currentActiveButton, true); 
+            }
+          });
+        });
+
+        // Update record button aria-label
+        const observer = new MutationObserver(mutations => {
+          mutations.forEach(mutation => {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+              const isRecording = recordButton.classList.contains('recording');
+              if (isRecording) {
+                recordButton.setAttribute('aria-label', 'Stop Recording');
+              } else {
+                recordButton.setAttribute('aria-label', 'Start Recording');
+              }
+            }
+          });
+        });
+        observer.observe(recordButton, { attributes: true });
+
+      });
+  </script>
+</body>
+
+</html>

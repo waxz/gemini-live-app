@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "skipLibCheck": true,
+
+    "module": "esnext", // Change this to esnext or es2020
+    "moduleResolution" :"bundler", // Change this to bundler or node, depending on your bundler's preference
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    // "noUncheckedSideEffectImports": true, // This might cause issues with some imports in the browser, consider disabling if needed
+
+
+    "paths": {
+      "@/*" :  ["./*"]
+    }
+  }
+}

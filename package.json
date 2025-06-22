@@ -1,0 +1,20 @@
+{
+  "scripts": {
+    "build":"vite build",
+    "dev": "npx wrangler pages dev --port 8888"
+  },
+  "dependencies": {
+    "typescript": "^5.8.3"
+  },
+  "devDependencies": {
+    "@google/genai": "^1.6.0",
+    "@types/node": "^24.0.3",
+    "buffer": "^6.0.3",
+    "marked": "^15.0.12",
+    "mime": "^4.0.7",
+    "wavefile": "^11.0.0",
+    "@cloudflare/workers-types": "^4.20250620.0",
+    "typescript": "~5.7.2",
+    "vite": "^6.2.0"
+  }
+}
